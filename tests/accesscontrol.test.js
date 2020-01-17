@@ -1,48 +1,7 @@
-const parse = require('csv-parse/lib/sync')
 const AccessControl = require('role-acl')
 
-// role,resource,action,attributes,condition
-const acls = `
-admin,video,create,"*",
-admin,video,read,"*,!id",
-`
-
-test('parse grants from CSV definition', () => {
-  const grants = parse(acls, {
-    // columns: true,
-    skip_empty_lines: true,
-    columns: ['role', 'resource','action','attributes','condition'],
-    cast: (value, context) => {
-      // if (context.column === 3) {
-      if (context.column === 'attributes') {
-        console.log(context.header)
-        console.log(value)
-        return value.split(',')
-      } else {
-        return value
-      }
-    }
-  })
-  // expect(parse.info).toBe({})
-  expect(grants).toEqual([
-    {role: 'admin', resource: 'video', action: 'create', attributes: ['*'], condition: ''},
-    {role: 'admin', resource: 'video', action: 'read', attributes: ['*', '!id'], condition: ''},
-  ])
-})
-
-test('basic AccessControl example', () => {
-  const customAc = new AccessControl()
-  customAc.grant('user') // define new or modify existing role. also takes an array.
-    .execute('create').on('video') // equivalent to .execute('create').on('video', ['*'])
-    .execute('delete').on('video')
-    .execute('read').on('video')
-  const permission = customAc.can('user').execute('create').sync().on('video') // <-- Sync Example
-  // const permission = await ac.can('user').execute('create').on('video'); // <-- Async Example
-  expect(permission.granted).toBe(true)
-  expect(permission.attributes).toEqual(['*'])
-})
-
 let ac
+
 beforeAll(() => {
   const grantList = [
     {role: 'admin', resource: 'video', action: 'create', attributes: ['*'], condition: ''},
