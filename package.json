@@ -17,5 +17,9 @@
     "eslint": "5.16.0",
     "eslint-config-node-opinionated": "0.2.6",
     "jest": "24.9.0"
+  },
+  "dependencies": {
+    "csv-parse": "4.8.5",
+    "role-acl": "4.3.2"
   }
 }
