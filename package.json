@@ -1,0 +1,21 @@
+{
+  "name": "accesscontrol-experiments",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "author": "Daniele Dellafiore",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "eslint": "5.16.0",
+    "eslint-config-node-opinionated": "0.2.6",
+    "jest": "24.9.0"
+  }
+}
