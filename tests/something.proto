@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package proto;
+
+service SomethingService {
+  rpc Echo (EchoRequest) returns (EchoResponse);
+  rpc doSomething(SomeRequest) returns (SomeResponse);
+  rpc doSomethingAdmin(SomeRequest) returns (SomeResponse);
+}
+
+message SomeRequest {
+  string id = 1;
+}
+
+message SomeResponse {
+  string id = 1;
+  string something = 2;
+}
+
+message EchoRequest {string message = 1;}
+message EchoResponse {string message = 1;}
