@@ -4,8 +4,8 @@ package proto;
 
 service SomethingService {
   rpc Echo (EchoRequest) returns (EchoResponse);
-  rpc doSomething(SomeRequest) returns (SomeResponse);
-  rpc doSomethingAdmin(SomeRequest) returns (SomeResponse);
+  rpc DoSomething (SomeRequest) returns (SomeResponse);
+  rpc doSomethingAdmin (SomeRequest) returns (SomeResponse);
 }
 
 message SomeRequest {

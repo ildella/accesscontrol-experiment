@@ -2,9 +2,13 @@ const {callbackify} = require('util')
 const simpleGrpcJsClient = require('./simple-grpc-js-client')
 const simpleGrpcServer = require('./simple-grpc-server')
 
-const echo = async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
+const echo = async call => {
+  console.log(call.request)
+  console.log(call.metadata)
+  return {event: 'echo-reply', version: '0.1', message: call.request.message}
+}
 const doSomething = call => {
-  console.log('doing something...', call.request)
+  console.log('doing something...', call)
   return {}
 }
 
@@ -44,3 +48,11 @@ test('gRPC client-server communication', done => {
     done()
   })
 })
+
+// test('gRPC CallCredentials', done => {
+//   client.doSomething({}, (err, response) => {
+//     // expect(err).toBe(null)
+//     // expect(response.message).toBe('hi')
+//     done()
+//   })
+// })

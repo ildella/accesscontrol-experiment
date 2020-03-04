@@ -23,6 +23,7 @@
     "@grpc/grpc-js": "0.7.0",
     "@grpc/proto-loader": "0.5.3",
     "csv-parse": "4.8.5",
+    "google-auth-library": "5.10.1",
     "grpc": "1.24.2",
     "mongodb": "3.5.1",
     "role-acl": "4.3.2"
