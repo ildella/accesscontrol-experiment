@@ -1,20 +1,40 @@
 const {callbackify} = require('util')
 const grpc = require('grpc')
+const AccessControl = require('role-acl')
+
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
-const echo = async call =>
-  // console.log(call.request)
-  // console.log(call.metadata)
-  // console.log(call.metadata.get('role'))
-  ({event: 'echo-reply', version: '0.1', message: call.request.message})
+const grantList = [
+  {role: 'user', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
+  {role: 'admin', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
+  {role: 'admin', resource: 'something', action: 'create', attributes: ['*'], condition: ''},
+  {role: 'admin', resource: 'something', action: 'update', attributes: ['*'], condition: ''},
+  {role: 'admin', resource: 'something', action: 'delete', attributes: ['*'], condition: ''},
+]
+const ac = new AccessControl(grantList)
+const {compose} = require('ramda')
 
+const echo = async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
 const doSomething = async call => ({message: 'I did something'})
 const doSomethingAdmin = async call => ({message: 'I did something important'})
+
+const protect = (call, cb) => {
+  const role = call.metadata.get('role')
+  // console.log(call.metadata)
+  if (role !== 'admin') {
+    return cb({
+      code: grpc.status.UNAUTHENTICATED,
+      message: 'You have to be an Admin to do this...',
+    })
+  }
+  return cb()
+}
 
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(doSomething),
-  doSomethingAdmin: callbackify(doSomethingAdmin),
+  // doSomethingAdmin: compose(protect, callbackify(doSomethingAdmin)),
+  doSomethingAdmin: protect,
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -51,6 +71,7 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
     // expect(err.code).toBe(grpc.status.UNIMPLEMENTED)
     expect(err).not.toBeNull()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
     done()
   })
 })
