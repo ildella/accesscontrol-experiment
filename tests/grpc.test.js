@@ -50,9 +50,7 @@ test('gRPC client-server communication', done => {
 })
 
 // test('gRPC CallCredentials', done => {
-//   client.doSomething({}, (err, response) => {
-//     // expect(err).toBe(null)
-//     // expect(response.message).toBe('hi')
+//   client.withCallCredentials().echo({message: 'hi, with metadata'}, (err, response) => {
 //     done()
 //   })
 // })
