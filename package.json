@@ -16,8 +16,8 @@
   "devDependencies": {
     "eslint": "5.16.0",
     "eslint-config-node-opinionated": "0.2.6",
-    "jest": "24.9.0",
-    "mongodb-memory-server-core": "6.2.2",
+    "jest": "25.1.0",
+    "mongodb-memory-server-core": "6.3.2",
     "@grpc/grpc-js": "0.7.0"
   },
   "dependencies": {
@@ -25,7 +25,7 @@
     "csv-parse": "4.8.5",
     "google-auth-library": "5.10.1",
     "grpc": "1.24.2",
-    "mongodb": "3.5.1",
-    "role-acl": "4.3.2"
+    "mongodb": "3.5.4",
+    "role-acl": "4.3.3"
   }
 }

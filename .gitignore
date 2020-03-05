@@ -3,3 +3,4 @@ node_modules
 .yarn/cache
 .yarn/build-state.yml
 **/**yarn-error.log
+/coverage
