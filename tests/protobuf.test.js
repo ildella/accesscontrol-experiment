@@ -6,6 +6,6 @@ test('validate proto files', () => {
   const packageDefinition = protoLoader.loadSync(`${__dirname}/something.proto`, protoOptions)
   expect(packageDefinition).toBeDefined()
   expect(Object.keys(packageDefinition)).toEqual([
-    'proto.SomethingService', 'proto.SomeRequest', 'proto.SomeResponse', 'proto.EchoRequest', 'proto.EchoResponse'
+    'proto.SomethingService', 'proto.EchoRequest', 'proto.EchoResponse'
   ])
 })

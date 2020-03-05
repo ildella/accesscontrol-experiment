@@ -3,9 +3,9 @@ syntax = "proto3";
 package proto;
 
 service SomethingService {
-  rpc Echo (EchoRequest) returns (EchoResponse);
-  rpc DoSomething (EchoRequest) returns (EchoResponse);
-  rpc DoSomethingAdmin (EchoRequest) returns (EchoResponse);
+  rpc echo (EchoRequest) returns (EchoResponse);
+  rpc doSomething (EchoRequest) returns (EchoResponse);
+  rpc doSomethingAdmin (EchoRequest) returns (EchoResponse);
 }
 
 message EchoRequest {string message = 1;}
