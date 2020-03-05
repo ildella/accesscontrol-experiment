@@ -4,17 +4,8 @@ package proto;
 
 service SomethingService {
   rpc Echo (EchoRequest) returns (EchoResponse);
-  rpc DoSomething (SomeRequest) returns (SomeResponse);
-  rpc doSomethingAdmin (SomeRequest) returns (SomeResponse);
-}
-
-message SomeRequest {
-  string id = 1;
-}
-
-message SomeResponse {
-  string id = 1;
-  string something = 2;
+  rpc DoSomething (EchoRequest) returns (EchoResponse);
+  rpc DoSomethingAdmin (EchoRequest) returns (EchoResponse);
 }
 
 message EchoRequest {string message = 1;}
