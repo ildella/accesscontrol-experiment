@@ -19,7 +19,7 @@ const rpcs = {
   doSomething: callbackify(doSomething),
 }
 const grpcServiceConfig = {
-  port: 50101,
+  port: 50102,
   protoPath: `${__dirname}/something.proto`,
   service: 'SomethingService',
 }
@@ -27,8 +27,8 @@ let testServer
 let client
 
 beforeAll(async () => {
-  const {server, packageObject} = await simpleGrpcServer(grpcServiceConfig, rpcs)
-  server.addService(packageObject.proto['SomethingService'].service, rpcs)
+  const {server, protoDescriptor} = await simpleGrpcServer(grpcServiceConfig, rpcs)
+  server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
   server.start()
   testServer = server
   client = simpleGrpcJsClient(grpcServiceConfig)
