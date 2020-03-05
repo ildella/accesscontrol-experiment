@@ -2,11 +2,10 @@ const {callbackify} = require('util')
 const grpc = require('grpc')
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
-
 const echo = async call => {
   // console.log(call.request)
   // console.log(call.metadata)
-  // console.log(call.metadata.get('role'))
+  console.log(call.metadata.get('role'))
   return {event: 'echo-reply', version: '0.1', message: call.request.message}
 }
 const doSomething = call => {
@@ -35,36 +34,15 @@ beforeAll(async () => {
 })
 
 afterAll(async done => {
-  // await client.$channel.close()
   testServer.tryShutdown(() => done())
 })
 
-test('Server is started', () => {
-  expect(testServer.started).toBe(true)
-})
-
-test('gRPC client-server communication', done => {
-  client.echo({message: 'hi'}, (err, response) => {
-    expect(err).toBe(null)
-    expect(response.message).toBe('hi')
-    done()
-  })
-})
-
-test('gRPC send metadata', done => {
-  const meta = new grpc.Metadata()
-  meta.add('role', 'user')
-  console.log('meta', meta)
-  client.echo({message: 'hi'}, meta, (err, response) => {
-    done()
-  })
-})
-
-test.skip('gRPC CallCredentials', done => {
-  const meta = new grpc.Metadata()
-  meta.add('role', 'user')
-  const callCredentials = grpc.credentials.createFromMetadataGenerator(meta)
-  client.echo({message: 'hi, with metadata'}, callCredentials, (err, response) => {
+test('get UNAUTHENTICATED error without proper metadata', done => {
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
+    // console.log(err.message)
+    // console.log(grpc.status)
+    // expect(err.code).toBe(grpc.status.UNIMPLEMENTED)
+    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     done()
   })
 })
