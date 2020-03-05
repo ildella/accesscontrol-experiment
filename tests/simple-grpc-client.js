@@ -1,4 +1,4 @@
-const grpc = require('@grpc/grpc-js')
+const grpc = require('grpc')
 const protoLoader = require('@grpc/proto-loader')
 
 const defaultProtoOptions = require('./default-proto-options')

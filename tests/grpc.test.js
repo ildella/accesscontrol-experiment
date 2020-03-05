@@ -1,10 +1,12 @@
+const grpc = require('grpc')
 const {callbackify} = require('util')
-const simpleGrpcJsClient = require('./simple-grpc-js-client')
+const simpleGrpcJsClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
 
 const echo = async call => {
-  console.log(call.request)
-  console.log(call.metadata)
+  // console.log(call.request)
+  // console.log(call.metadata)
+  console.log(call.metadata.get('role'))
   return {event: 'echo-reply', version: '0.1', message: call.request.message}
 }
 const doSomething = call => {
@@ -49,8 +51,22 @@ test('gRPC client-server communication', done => {
   })
 })
 
-// test('gRPC CallCredentials', done => {
-//   client.withCallCredentials().echo({message: 'hi, with metadata'}, (err, response) => {
-//     done()
-//   })
-// })
+test('gRPC send metadata', done => {
+  const meta = new grpc.Metadata()
+  meta.add('role', 'user')
+  console.log('meta', meta)
+  client.echo({message: 'hi'}, meta, (err, response) => {
+    expect(err).toBe(null)
+    expect(response.message).toBe('hi')
+    done()
+  })
+})
+
+test.skip('gRPC CallCredentials', done => {
+  const meta = new grpc.Metadata()
+  meta.add('role', 'user')
+  const callCredentials = grpc.credentials.createFromMetadataGenerator(meta)
+  client.echo({message: 'hi, with metadata'}, callCredentials, (err, response) => {
+    done()
+  })
+})

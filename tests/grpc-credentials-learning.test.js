@@ -2,9 +2,13 @@ const {GoogleAuth} = require('google-auth-library')
 const grpc = require('grpc')
 const {credentials} = grpc
 
+test.skip('grpc', () => {
+  expect(grpc).toBe({})
+})
+
 test.skip('credentials', () => {
   // expect(credentials).toBe({})
-  const callCredentials = credentials.createFromMetadataGenerator()
+  const callCredentials = credentials.createFromMetadataGenerator({role: 'user'})
   expect(callCredentials).toBe({})
 })
 
