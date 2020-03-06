@@ -63,3 +63,13 @@ test('compose functions - does fail', async () => {
   const result = await transformData(1)
   expect(result).not.toBe(4)
 })
+
+const {callbackify} = require('util')
+test('compose promise - can be callbackified', async done => {
+  const transformData = callbackify(composeAsync(f1, f2))
+  transformData(1, (err, result) => {
+    expect(err).toBe(null)
+    expect(result).toBe(4)
+    done()
+  })
+})
