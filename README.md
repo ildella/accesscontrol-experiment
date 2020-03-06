@@ -9,14 +9,15 @@ yarn test
 
 ## Nomenclature
 
-role: admin, user, editor...
-resource: the domain entitiy / business object (products, orders, invoices, contacts...)
-action: a verb of an action to be performed (view, create, update...)
-feature: resource + action eg: create invoice
-grant: role attribute/condition over a feature, 
+* role: admin, user, editor...
+* resource: the domain entitiy / business object (products, orders, invoices, contacts...)
+* action: a verb of an action to be performed (view, create, update...)
+* feature: resource + action eg: create invoice
+* grant: role attribute/condition over a feature, 
 
-grant example:  
-```json
+A grant example:
+
+```js
 {
   role: 'sports/editor', 
   resource: 'article', 
@@ -26,5 +27,5 @@ grant example:
 }
 ```
 
+Permission and Privilege are synonyms of Grant.
 
-Permission and Privilege are synonyms of Grant
