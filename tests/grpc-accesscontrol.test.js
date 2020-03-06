@@ -1,4 +1,4 @@
-const {callbackify} = require('util')
+const {callbackify, promisify} = require('util')
 const grpc = require('grpc')
 // console.log(grpc.status)
 const AccessControl = require('role-acl')
@@ -31,9 +31,8 @@ const doSomethingAdmin = jest.fn().mockImplementation(
 const protectCb = jest.fn().mockImplementation(
   (call, cb) => {
     const role = call.metadata.get('role')
-    console.log(role[0])
+    // console.log(role[0])
     if (role[0] !== 'admin') {
-      console.log('REJECTING, non authenticated')
       return cb({
         code: grpc.status.UNAUTHENTICATED,
         message: 'You have to be an Admin to do this...',
@@ -43,28 +42,11 @@ const protectCb = jest.fn().mockImplementation(
   }
 )
 
-// const protect = jest.fn().mockImplementation(
-//   async call => {
-//     const role = call.metadata.get('role')
-//     console.log(role[0])
-//     if (role[0] !== 'admin') {
-//       console.log('REJECTING, non authenticated')
-//       throw new Error({
-//         code: grpc.status.UNAUTHENTICATED,
-//         message: 'You have to be an Admin to do this...',
-//       })
-//     }
-//   }
-// )
-
 const rpcs = {
   echo: callbackify(echo),
-  doSomething: callbackify(doSomething),
+  doSomething: callbackify(composeAsync(doSomething)),
   verifyAdmin: protectCb,
-  // doSomethingAdmin: callbackify(protect),
-  // doSomethingAdmin: compose(doSomethingAdmin, protect),
-  // doSomethingAdmin: callbackify(composeAsync(protect, doSomethingAdmin)),
-  // doSomethingAdmin: chained,
+  doSomethingAdmin: callbackify(composeAsync(promisify(protectCb), doSomethingAdmin)),
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -97,7 +79,6 @@ test('doSomething is ok without any authorization metadata', done => {
 
 test('get UNAUTHENTICATED error without proper metadata', done => {
   client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
-    // console.log(err.message)
     expect(err).not.toBeNull()
     expect(protectCb).toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
@@ -106,20 +87,32 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
   })
 })
 
-test('get UNAUTHENTICATED here as well', done => {
+test('get UNAUTHENTICATED in doSomethingAdmin that chains protect and the actual function', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
+    expect(protectCb).toHaveBeenCalled()
+    expect(doSomethingAdmin).not.toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
-    expect(protectCb).toHaveBeenCalled()
+    expect(response).toBe(undefined)
     done()
   })
 })
 
-test.skip('valid authorization', done => {
+test('valid authorization', done => {
   const meta = new grpc.Metadata()
   meta.add('role', 'admin')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
+    expect(response).toEqual({message: 'I did something important'})
+    done()
+  })
+})
+
+test('not enough privileges, bro', done => {
+  const meta = new grpc.Metadata()
+  meta.add('role', 'humble-user')
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     done()
   })
 })

@@ -3,12 +3,12 @@ const grpc = require('grpc')
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
 
-const echo = jest.fn().mockImplementation(async call => {
+const echo = jest.fn().mockImplementation(async call =>
   // console.log(call.request)
   // console.log(call.metadata)
   // console.log(call.metadata.get('role'))
-  return {event: 'echo-reply', version: '0.1', message: call.request.message}
-})
+  ({event: 'echo-reply', version: '0.1', message: call.request.message})
+)
 
 const rpcs = {
   echo: callbackify(echo),
@@ -68,3 +68,4 @@ test('gRPC send metadata', done => {
 //     done()
 //   })
 // })
+//
