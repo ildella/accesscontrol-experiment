@@ -22,13 +22,10 @@ const doSomething = jest.fn().mockImplementation(
   async call => ({message: 'I did something'})
 )
 const doSomethingAdmin = jest.fn().mockImplementation(
-  async call => {
-    console.log(call.request)
-    return {message: 'I did something important'}
-  }
+  async call => ({message: 'I did something important'})
 )
 
-const protectCb = jest.fn().mockImplementation(
+const authorizationFilter = jest.fn().mockImplementation(
   (call, cb) => {
     const role = call.metadata.get('role')
     // console.log(role[0])
@@ -45,8 +42,8 @@ const protectCb = jest.fn().mockImplementation(
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(composeAsync(doSomething)),
-  verifyAdmin: protectCb,
-  doSomethingAdmin: callbackify(composeAsync(promisify(protectCb), doSomethingAdmin)),
+  verifyAdmin: authorizationFilter,
+  doSomethingAdmin: callbackify(composeAsync(promisify(authorizationFilter), doSomethingAdmin)),
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -80,20 +77,21 @@ test('doSomething is ok without any authorization metadata', done => {
 test('get UNAUTHENTICATED error without proper metadata', done => {
   client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(err).not.toBeNull()
-    expect(protectCb).toHaveBeenCalled()
+    expect(authorizationFilter).toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(response).toBeUndefined()
     done()
   })
 })
 
 test('get UNAUTHENTICATED in doSomethingAdmin that chains protect and the actual function', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
-    expect(protectCb).toHaveBeenCalled()
+    expect(authorizationFilter).toHaveBeenCalled()
     expect(doSomethingAdmin).not.toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
-    expect(response).toBe(undefined)
+    expect(response).toBeUndefined()
     done()
   })
 })
@@ -113,6 +111,7 @@ test('not enough privileges, bro', done => {
   meta.add('role', 'humble-user')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(response).toBeUndefined()
     done()
   })
 })
