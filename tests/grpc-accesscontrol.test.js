@@ -1,5 +1,6 @@
 const {callbackify} = require('util')
 const grpc = require('grpc')
+// console.log(grpc.status)
 const AccessControl = require('role-acl')
 
 const simpleGrpcClient = require('./simple-grpc-client')
@@ -13,28 +14,34 @@ const grantList = [
 ]
 const ac = new AccessControl(grantList)
 const {compose} = require('ramda')
+const __ = require('highland')
 
 const echo = async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
 const doSomething = async call => ({message: 'I did something'})
-const doSomethingAdmin = async call => ({message: 'I did something important'})
+const doSomethingAdmin = async call => {
+  console.log(call.request)
+  return {message: 'I did something important'}
+}
 
 const protect = (call, cb) => {
   const role = call.metadata.get('role')
-  // console.log(call.metadata)
-  if (role !== 'admin') {
+  console.log(role[0])
+  if (role[0] !== 'admin') {
+    console.log('REJECTING, non authenticated')
     return cb({
       code: grpc.status.UNAUTHENTICATED,
       message: 'You have to be an Admin to do this...',
     })
   }
-  return cb()
+  return cb(null, call)
 }
 
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(doSomething),
-  // doSomethingAdmin: compose(protect, callbackify(doSomethingAdmin)),
   doSomethingAdmin: protect,
+  // doSomethingAdmin: compose(doSomethingAdmin, protect),
+  // doSomethingAdmin: chained,
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -67,11 +74,19 @@ test('doSomething is ok without any authorization metadata', done => {
 test('get UNAUTHENTICATED error without proper metadata', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     // console.log(err.message)
-    // console.log(grpc.status)
-    // expect(err.code).toBe(grpc.status.UNIMPLEMENTED)
     expect(err).not.toBeNull()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    done()
+  })
+})
+
+test.skip('valid authorization', done => {
+  const meta = new grpc.Metadata()
+  meta.add('role', 'admin')
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+    expect(err).toBeNull()
+    expect(response).toBe({})
     done()
   })
 })

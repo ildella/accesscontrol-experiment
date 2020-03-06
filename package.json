@@ -10,7 +10,7 @@
     "node": ">=10.3"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint .",
     "test": "jest --maxWorkers 4"
   },
   "devDependencies": {
@@ -25,8 +25,10 @@
     "csv-parse": "4.8.5",
     "google-auth-library": "5.10.1",
     "grpc": "1.24.2",
+    "highland": "2.13.5",
     "mongodb": "3.5.4",
     "ramda": "0.27.0",
-    "role-acl": "4.3.3"
+    "role-acl": "4.3.3",
+    "rxjs": "6.5.4"
   }
 }
