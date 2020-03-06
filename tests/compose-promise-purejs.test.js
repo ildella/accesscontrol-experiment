@@ -2,8 +2,8 @@ const {compose, composeRight} = require('../src/function-composition')
 
 test('compose functions', () => {
   const multiplyBy2 = arg => arg * 2
-
   const sum3 = arg => arg + 3
+
   const expression = compose(multiplyBy2, sum3)
   const reverse = composeRight(multiplyBy2, sum3)
 
@@ -30,6 +30,12 @@ test('compose promise - error should block execution', async () => {
   const transformData = composeAsync(e1, p1, p2)
   const result = transformData(1)
   await expect(result).rejects.toThrow('e1')
+})
+
+test('compose promise - callbacks does not work', async () => {
+  const transformData = composeAsync(e2, p1, p2)
+  const result = transformData(1)
+  await expect(result).rejects.toThrow('cb is not a function')
 })
 
 const f1 = jest.fn().mockImplementation(async (param = 0) => 1 + param)
