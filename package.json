@@ -10,7 +10,7 @@
     "node": ">=10.3"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint .",
     "test": "jest --maxWorkers 4"
   },
   "devDependencies": {
