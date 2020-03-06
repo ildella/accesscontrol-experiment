@@ -53,15 +53,15 @@ const grpcServiceConfig = {
 let testServer
 let client
 
-beforeAll(async () => {
-  const {server, protoDescriptor} = await simpleGrpcServer(grpcServiceConfig, rpcs)
+beforeAll(() => {
+  const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
   server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
   server.start()
   testServer = server
   client = simpleGrpcClient(grpcServiceConfig)
 })
 
-afterAll(async done => {
+afterAll(done => {
   testServer.tryShutdown(() => done())
 })
 
