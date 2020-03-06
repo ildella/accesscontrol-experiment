@@ -13,15 +13,20 @@ const grantList = [
   {role: 'admin', resource: 'something', action: 'delete', attributes: ['*'], condition: ''},
 ]
 const ac = new AccessControl(grantList)
-const {compose} = require('ramda')
-const __ = require('highland')
+const {composeAsync} = require('../src/promise-composition')
 
-const echo = async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
-const doSomething = async call => ({message: 'I did something'})
-const doSomethingAdmin = async call => {
-  console.log(call.request)
-  return {message: 'I did something important'}
-}
+const echo = jest.fn().mockImplementation(
+  async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
+)
+const doSomething = jest.fn().mockImplementation(
+  async call => ({message: 'I did something'})
+)
+const doSomethingAdmin = jest.fn().mockImplementation(
+  async call => {
+    console.log(call.request)
+    return {message: 'I did something important'}
+  }
+)
 
 const protect = (call, cb) => {
   const role = call.metadata.get('role')
@@ -41,6 +46,7 @@ const rpcs = {
   doSomething: callbackify(doSomething),
   doSomethingAdmin: protect,
   // doSomethingAdmin: compose(doSomethingAdmin, protect),
+  // doSomethingAdmin: composeAsync(protect, doSomethingAdmin),
   // doSomethingAdmin: chained,
 }
 const grpcServiceConfig = {
@@ -67,6 +73,7 @@ test('doSomething is ok without any authorization metadata', done => {
   client.doSomething({message: 'hi'}, (err, response) => {
     expect(err).toBe(null)
     expect(response).toEqual({message: 'I did something'})
+    expect(doSomething).toHaveBeenCalled()
     done()
   })
 })
