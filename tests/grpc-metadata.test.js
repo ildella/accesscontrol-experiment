@@ -18,24 +18,18 @@ const grpcServiceConfig = {
   protoPath: `${__dirname}/something.proto`,
   service: 'SomethingService',
 }
-let testServer
-let client
 
-beforeAll(async () => {
-  const {server, protoDescriptor} = await simpleGrpcServer(grpcServiceConfig, rpcs)
-  server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
-  server.start()
-  testServer = server
-  client = simpleGrpcClient(grpcServiceConfig)
-})
+const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
+server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
+server.start()
+const client = simpleGrpcClient(grpcServiceConfig)
 
-afterAll(async done => {
-  // await client.$channel.close()
-  testServer.tryShutdown(() => done())
+afterAll(done => {
+  server.tryShutdown(() => done())
 })
 
 test('Server is started', () => {
-  expect(testServer.started).toBe(true)
+  expect(server.started).toBe(true)
 })
 
 test('gRPC basic client-server communication works', done => {

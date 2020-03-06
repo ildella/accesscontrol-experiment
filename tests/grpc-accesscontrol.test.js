@@ -50,19 +50,13 @@ const grpcServiceConfig = {
   protoPath: `${__dirname}/something.proto`,
   service: 'SomethingService',
 }
-let testServer
-let client
-
-beforeAll(() => {
-  const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
-  server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
-  server.start()
-  testServer = server
-  client = simpleGrpcClient(grpcServiceConfig)
-})
+const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
+server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
+server.start()
+const client = simpleGrpcClient(grpcServiceConfig)
 
 afterAll(done => {
-  testServer.tryShutdown(() => done())
+  server.tryShutdown(() => done())
 })
 
 test('doSomething is ok without any authorization metadata', done => {
