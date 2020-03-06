@@ -27,7 +27,7 @@ const fs = require('fs')
 const cert = fs.createReadStream('cert.pem')
 const key = fs.createReadStream('key.pem')
 
-test('load server with Channel credentials', () => {
+test('load server with Channel Credentials from SSL Certificate', () => {
   const {host, port} = grpcServiceConfig
   const server = new grpc.Server()
   const address = `${host}:${port}`
