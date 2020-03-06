@@ -1,14 +1,11 @@
-const composePure = (...funcs) =>
-  initialArg => funcs.reduce((acc, func) => func(acc), initialArg)
-const composePureRight = (...funcs) =>
-  initialArg => funcs.reduceRight((acc, func) => func(acc), initialArg)
+const {compose, composeRight} = require('../src/function-composition')
 
 test('compose functions', () => {
   const multiplyBy2 = arg => arg * 2
 
   const sum3 = arg => arg + 3
-  const expression = composePure(multiplyBy2, sum3)
-  const reverse = composePureRight(multiplyBy2, sum3)
+  const expression = compose(multiplyBy2, sum3)
+  const reverse = composeRight(multiplyBy2, sum3)
 
   expect(expression(2)).toEqual(7) // 2 * 2 + 3 = 7
   expect(reverse(2)).toEqual(10) // 2 + 3 * 2 = 10
@@ -56,7 +53,7 @@ test('compose promise - works', async () => {
 })
 
 test('compose functions - does fail', async () => {
-  const transformData = composePure(f1, f2)
+  const transformData = compose(f1, f2)
   const result = await transformData(1)
   expect(result).not.toBe(4)
 })
