@@ -28,25 +28,42 @@ const doSomethingAdmin = jest.fn().mockImplementation(
   }
 )
 
-const protect = (call, cb) => {
-  const role = call.metadata.get('role')
-  console.log(role[0])
-  if (role[0] !== 'admin') {
-    console.log('REJECTING, non authenticated')
-    return cb({
-      code: grpc.status.UNAUTHENTICATED,
-      message: 'You have to be an Admin to do this...',
-    })
+const protectCb = jest.fn().mockImplementation(
+  (call, cb) => {
+    const role = call.metadata.get('role')
+    console.log(role[0])
+    if (role[0] !== 'admin') {
+      console.log('REJECTING, non authenticated')
+      return cb({
+        code: grpc.status.UNAUTHENTICATED,
+        message: 'You have to be an Admin to do this...',
+      })
+    }
+    return cb(null, call)
   }
-  return cb(null, call)
-}
+)
+
+// const protect = jest.fn().mockImplementation(
+//   async call => {
+//     const role = call.metadata.get('role')
+//     console.log(role[0])
+//     if (role[0] !== 'admin') {
+//       console.log('REJECTING, non authenticated')
+//       throw new Error({
+//         code: grpc.status.UNAUTHENTICATED,
+//         message: 'You have to be an Admin to do this...',
+//       })
+//     }
+//   }
+// )
 
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(doSomething),
-  doSomethingAdmin: protect,
+  verifyAdmin: protectCb,
+  // doSomethingAdmin: callbackify(protect),
   // doSomethingAdmin: compose(doSomethingAdmin, protect),
-  // doSomethingAdmin: composeAsync(protect, doSomethingAdmin),
+  // doSomethingAdmin: callbackify(composeAsync(protect, doSomethingAdmin)),
   // doSomethingAdmin: chained,
 }
 const grpcServiceConfig = {
@@ -79,11 +96,21 @@ test('doSomething is ok without any authorization metadata', done => {
 })
 
 test('get UNAUTHENTICATED error without proper metadata', done => {
-  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
+  client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     // console.log(err.message)
     expect(err).not.toBeNull()
+    expect(protectCb).toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    done()
+  })
+})
+
+test('get UNAUTHENTICATED here as well', done => {
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
+    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(protectCb).toHaveBeenCalled()
     done()
   })
 })
@@ -93,7 +120,6 @@ test.skip('valid authorization', done => {
   meta.add('role', 'admin')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
-    expect(response).toBe({})
     done()
   })
 })
