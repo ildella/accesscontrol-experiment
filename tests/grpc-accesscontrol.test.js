@@ -30,9 +30,12 @@ const authorizationFilter = jest.fn().mockImplementation(
     const role = call.metadata.get('role')
     // console.log(role[0])
     if (role[0] !== 'admin') {
+      const meta = new grpc.Metadata()
+      meta.add('custom-authz-message', 'need-admin')
       return cb({
         code: grpc.status.UNAUTHENTICATED,
-        message: 'You have to be an Admin to do this...',
+        details: 'You have to be an Admin to do this...',
+        metadata: meta,
       })
     }
     return cb(null, call)
@@ -55,7 +58,8 @@ server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
 server.start()
 const client = simpleGrpcClient(grpcServiceConfig)
 
-afterAll(done => {
+afterAll(async done => {
+  await grpc.getClientChannel(client).close()
   server.tryShutdown(() => done())
 })
 
@@ -105,6 +109,10 @@ test('not enough privileges, bro', done => {
   meta.add('role', 'humble-user')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.details).toBe('You have to be an Admin to do this...')
+    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    // expect(err.metadata).toBe('')
+    // expect(Object.keys(err)).toBe([])
     expect(response).toBeUndefined()
     done()
   })
