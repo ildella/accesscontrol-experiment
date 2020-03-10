@@ -5,6 +5,7 @@ package proto;
 service SomethingService {
   rpc echo (EchoRequest) returns (EchoResponse);
   rpc doSomething (EchoRequest) returns (EchoResponse);
+  rpc verifyAdmin (EchoRequest) returns (EchoResponse);
   rpc doSomethingAdmin (EchoRequest) returns (EchoResponse);
 }
 

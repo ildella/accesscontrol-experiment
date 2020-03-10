@@ -1,10 +1,11 @@
-const {callbackify} = require('util')
-const grpc = require('grpc')
-// console.log(grpc.status)
+const {callbackify, promisify} = require('util')
 const AccessControl = require('role-acl')
+const grpc = require('grpc')
 
+const {composeAsync} = require('../src/promise-composition')
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
+
 const grantList = [
   {role: 'user', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
   {role: 'admin', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
@@ -13,80 +14,107 @@ const grantList = [
   {role: 'admin', resource: 'something', action: 'delete', attributes: ['*'], condition: ''},
 ]
 const ac = new AccessControl(grantList)
-const {compose} = require('ramda')
-const __ = require('highland')
-
-const echo = async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
-const doSomething = async call => ({message: 'I did something'})
-const doSomethingAdmin = async call => {
-  console.log(call.request)
-  return {message: 'I did something important'}
-}
-
-const protect = (call, cb) => {
-  const role = call.metadata.get('role')
-  console.log(role[0])
-  if (role[0] !== 'admin') {
-    console.log('REJECTING, non authenticated')
+const echo = jest.fn().mockImplementation(
+  async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
+)
+const doSomething = jest.fn().mockImplementation(
+  async call => ({message: 'I did something'})
+)
+const doSomethingAdmin = jest.fn().mockImplementation(
+  async call => ({message: 'I did something important'})
+)
+const authorizationFilter = jest.fn().mockImplementation(
+  (call, cb) => {
+    const roles = call.metadata.get('roles')
+    const permission = ac.can(roles).execute('create').sync().on('something')
+    console.log(`${roles}: granted: ${permission.granted}`)
+    if (permission.granted === true) {
+      return cb(null, call)
+    }
+    const meta = new grpc.Metadata()
+    meta.add('custom-authz-message', 'need-admin')
     return cb({
       code: grpc.status.UNAUTHENTICATED,
-      message: 'You have to be an Admin to do this...',
+      details: 'You have to be an Admin to do this...',
+      metadata: meta,
     })
   }
-  return cb(null, call)
-}
+)
+const authorizationFilterPromise = promisify(authorizationFilter)
 
 const rpcs = {
   echo: callbackify(echo),
-  doSomething: callbackify(doSomething),
-  doSomethingAdmin: protect,
-  // doSomethingAdmin: compose(doSomethingAdmin, protect),
-  // doSomethingAdmin: chained,
+  doSomething: callbackify(composeAsync(doSomething)),
+  verifyAdmin: authorizationFilter,
+  doSomethingAdmin: callbackify(composeAsync(authorizationFilterPromise, doSomethingAdmin)),
 }
 const grpcServiceConfig = {
   port: 50102,
   protoPath: `${__dirname}/something.proto`,
   service: 'SomethingService',
 }
-let testServer
-let client
-
-beforeAll(async () => {
-  const {server, protoDescriptor} = await simpleGrpcServer(grpcServiceConfig, rpcs)
-  server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
-  server.start()
-  testServer = server
-  client = simpleGrpcClient(grpcServiceConfig)
-})
+const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
+server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
+server.start()
+const client = simpleGrpcClient(grpcServiceConfig)
+// console.log(grpc.status)
 
 afterAll(async done => {
-  testServer.tryShutdown(() => done())
+  await grpc.getClientChannel(client).close()
+  server.tryShutdown(() => done())
 })
 
 test('doSomething is ok without any authorization metadata', done => {
   client.doSomething({message: 'hi'}, (err, response) => {
     expect(err).toBe(null)
     expect(response).toEqual({message: 'I did something'})
+    expect(doSomething).toHaveBeenCalled()
     done()
   })
 })
 
 test('get UNAUTHENTICATED error without proper metadata', done => {
-  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
-    // console.log(err.message)
+  client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(err).not.toBeNull()
+    expect(authorizationFilter).toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(response).toBeUndefined()
     done()
   })
 })
 
-test.skip('valid authorization', done => {
+test('call with no metadata fails', done => {
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
+    expect(authorizationFilter).toHaveBeenCalled()
+    expect(doSomethingAdmin).not.toHaveBeenCalled()
+    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(response).toBeUndefined()
+    done()
+  })
+})
+
+test('valid admin role', done => {
   const meta = new grpc.Metadata()
-  meta.add('role', 'admin')
+  meta.add('roles', 'admin')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
-    expect(response).toBe({})
+    expect(response).toEqual({message: 'I did something important'})
+    done()
+  })
+})
+
+test('not enough privileges, bro', done => {
+  const meta = new grpc.Metadata()
+  meta.add('roles', 'user')
+  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.details).toBe('You have to be an Admin to do this...')
+    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    // expect(err.metadata).toBe('')
+    // expect(Object.keys(err)).toBe([])
+    expect(response).toBeUndefined()
     done()
   })
 })
