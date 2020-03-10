@@ -3,12 +3,12 @@ const grpc = require('grpc')
 
 const {credentials} = grpc
 
-test('credentials', () => {
+test.skip('credentials', () => {
   const callCredentials = credentials.createFromMetadataGenerator({role: 'user'})
   // expect(callCredentials).toEqual({})
 })
 
-test('call credentials from Google', done => {
+test.skip('call credentials from Google', done => {
   (new GoogleAuth()).getApplicationDefault((err, auth) => {
     const googleCallCreds = grpc.credentials.createFromGoogleCredential(auth)
     // const combinedCreds = grpc.credentials.combineChannelCredentials(ssl_creds, call_creds)
