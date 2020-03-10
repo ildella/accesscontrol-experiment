@@ -1,10 +1,11 @@
 const {callbackify, promisify} = require('util')
-const grpc = require('grpc')
-// console.log(grpc.status)
 const AccessControl = require('role-acl')
+const grpc = require('grpc')
 
+const {composeAsync} = require('../src/promise-composition')
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
+
 const grantList = [
   {role: 'user', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
   {role: 'admin', resource: 'something', action: 'read', attributes: ['*'], condition: ''},
@@ -13,8 +14,6 @@ const grantList = [
   {role: 'admin', resource: 'something', action: 'delete', attributes: ['*'], condition: ''},
 ]
 const ac = new AccessControl(grantList)
-const {composeAsync} = require('../src/promise-composition')
-
 const echo = jest.fn().mockImplementation(
   async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
 )
@@ -24,7 +23,6 @@ const doSomething = jest.fn().mockImplementation(
 const doSomethingAdmin = jest.fn().mockImplementation(
   async call => ({message: 'I did something important'})
 )
-
 const authorizationFilter = jest.fn().mockImplementation(
   (call, cb) => {
     const roles = call.metadata.get('roles')
@@ -42,12 +40,13 @@ const authorizationFilter = jest.fn().mockImplementation(
     })
   }
 )
+const authorizationFilterPromise = promisify(authorizationFilter)
 
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(composeAsync(doSomething)),
   verifyAdmin: authorizationFilter,
-  doSomethingAdmin: callbackify(composeAsync(promisify(authorizationFilter), doSomethingAdmin)),
+  doSomethingAdmin: callbackify(composeAsync(authorizationFilterPromise, doSomethingAdmin)),
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -58,6 +57,7 @@ const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
 server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
 server.start()
 const client = simpleGrpcClient(grpcServiceConfig)
+// console.log(grpc.status)
 
 afterAll(async done => {
   await grpc.getClientChannel(client).close()
