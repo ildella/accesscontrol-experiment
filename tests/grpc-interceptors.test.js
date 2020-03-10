@@ -1,26 +1,9 @@
 const {callbackify} = require('util')
 const grpc = require('grpc')
-const protoLoader = require('@grpc/proto-loader')
+// const protoLoader = require('@grpc/proto-loader')
 
 const simpleGrpcServer = require('./simple-grpc-server')
 const simpleGrpcClient = require('./simple-grpc-client')
-
-const interceptor = new grpc.InterceptingCall({
-  next_call: param => {
-    console.log(param)
-  },
-  requester: {
-    start: (metadata, listener, next) => console.log('start', metadata),
-    sendMessage: (message, next) => {
-      console.log('sendMessage', message)
-      next()
-    },
-    halfClose: next => {
-      console.log('halfClose')
-      next()
-    },
-  }
-})
 
 const echo = jest.fn().mockImplementation(async call =>
   ({event: 'echo-reply', version: '0.1', message: call.request.message})
@@ -47,6 +30,23 @@ server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
 server.start()
 const client = simpleGrpcClient(grpcServiceConfig)
 
+const interceptor = new grpc.InterceptingCall({
+  next_call: param => {
+    console.log(param)
+  },
+  requester: {
+    start: (metadata, listener, next) => console.log('start', metadata),
+    sendMessage: (message, next) => {
+      console.log('sendMessage', message)
+      next()
+    },
+    halfClose: next => {
+      console.log('halfClose')
+      next()
+    },
+  }
+})
+
 afterAll(done => {
   server.tryShutdown(() => done())
 })
@@ -55,6 +55,8 @@ test('Server is started', () => {
   expect(server.started).toBe(true)
 })
 
+// Only custom implementaiton like this exists: https://www.npmjs.com/package/@echo-health/grpc-interceptors
+// Used for tracing and monitoring...
 test('gRPC basic client-server communication works', done => {
   client.echo({message: 'hi'}, (err, response) => {
     expect(err).toBe(null)
