@@ -27,18 +27,19 @@ const doSomethingAdmin = jest.fn().mockImplementation(
 
 const authorizationFilter = jest.fn().mockImplementation(
   (call, cb) => {
-    const role = call.metadata.get('role')
-    // console.log(role[0])
-    if (role[0] !== 'admin') {
-      const meta = new grpc.Metadata()
-      meta.add('custom-authz-message', 'need-admin')
-      return cb({
-        code: grpc.status.UNAUTHENTICATED,
-        details: 'You have to be an Admin to do this...',
-        metadata: meta,
-      })
+    const roles = call.metadata.get('roles')
+    const permission = ac.can(roles).execute('create').sync().on('something')
+    console.log(`${roles}: granted: ${permission.granted}`)
+    if (permission.granted === true) {
+      return cb(null, call)
     }
-    return cb(null, call)
+    const meta = new grpc.Metadata()
+    meta.add('custom-authz-message', 'need-admin')
+    return cb({
+      code: grpc.status.UNAUTHENTICATED,
+      details: 'You have to be an Admin to do this...',
+      metadata: meta,
+    })
   }
 )
 
@@ -83,7 +84,7 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
   })
 })
 
-test('get UNAUTHENTICATED in doSomethingAdmin that chains protect and the actual function', done => {
+test('call with no metadata fails', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(authorizationFilter).toHaveBeenCalled()
     expect(doSomethingAdmin).not.toHaveBeenCalled()
@@ -94,9 +95,9 @@ test('get UNAUTHENTICATED in doSomethingAdmin that chains protect and the actual
   })
 })
 
-test('valid authorization', done => {
+test('valid admin role', done => {
   const meta = new grpc.Metadata()
-  meta.add('role', 'admin')
+  meta.add('roles', 'admin')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
     expect(response).toEqual({message: 'I did something important'})
@@ -106,7 +107,7 @@ test('valid authorization', done => {
 
 test('not enough privileges, bro', done => {
   const meta = new grpc.Metadata()
-  meta.add('role', 'humble-user')
+  meta.add('roles', 'user')
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.details).toBe('You have to be an Admin to do this...')

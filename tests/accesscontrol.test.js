@@ -36,6 +36,18 @@ test('action', () => {
   expect(permission.attributes).toEqual(['*'])
 })
 
+test('magic - multiple roles', () => {
+  const permission = ac.can(['user', 'admin']).execute('create').sync().on('article')
+  expect(permission.granted).toBe(true)
+  expect(permission.attributes).toEqual(['*'])
+})
+
+test.skip('role not found throws', () => {
+  const permission = ac.can('user2').execute('create').sync().on('article')
+  // expect(permission.granted).toBe(true)
+  // expect(permission.attributes).toEqual(['*'])
+})
+
 test('action - wildcard', () => {
   const permission = ac.can('user').execute('birubiru').sync().on('photo')
   expect(permission.granted).toBe(true)
