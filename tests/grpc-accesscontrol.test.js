@@ -23,30 +23,29 @@ const doSomething = jest.fn().mockImplementation(
 const doSomethingAdmin = jest.fn().mockImplementation(
   async call => ({message: 'I did something important'})
 )
-const authorizationFilter = jest.fn().mockImplementation(
-  (call, cb) => {
-    const roles = call.metadata.get('roles')
-    const permission = ac.can(roles).execute('create').sync().on('something')
-    console.log(`${roles}: granted: ${permission.granted}`)
-    if (permission.granted === true) {
-      return cb(null, call)
-    }
-    const meta = new grpc.Metadata()
-    meta.add('custom-authz-message', 'need-admin')
-    return cb({
-      code: grpc.status.UNAUTHENTICATED,
-      details: 'You have to be an Admin to do this...',
-      metadata: meta,
-    })
+const authzFilter = (call, cb) => {
+  const roles = call.metadata.get('roles')
+  const permission = ac.can(roles).execute('create').sync().on('something')
+  console.log(`${roles}: granted: ${permission.granted}`)
+  if (permission.granted === true) {
+    return cb(null, call)
   }
-)
-const authorizationFilterPromise = promisify(authorizationFilter)
+  const meta = new grpc.Metadata()
+  meta.add('custom-authz-message', 'need-admin')
+  return cb({
+    code: grpc.status.UNAUTHENTICATED,
+    details: 'You have to be an Admin to do this...',
+    metadata: meta,
+  })
+}
+const authorizationFilterPromise = promisify(authzFilter)
+const authorizationFilterPromiseMock = jest.fn().mockImplementation(authorizationFilterPromise)
 
 const rpcs = {
   echo: callbackify(echo),
   doSomething: callbackify(composeAsync(doSomething)),
-  verifyAdmin: authorizationFilter,
-  doSomethingAdmin: callbackify(composeAsync(authorizationFilterPromise, doSomethingAdmin)),
+  verifyAdmin: authorizationFilterPromiseMock,
+  doSomethingAdmin: callbackify(composeAsync(authorizationFilterPromiseMock, doSomethingAdmin)),
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -76,7 +75,6 @@ test('doSomething is ok without any authorization metadata', done => {
 test('get UNAUTHENTICATED error without proper metadata', done => {
   client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(err).not.toBeNull()
-    expect(authorizationFilter).toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
     expect(response).toBeUndefined()
@@ -84,9 +82,8 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
   })
 })
 
-test('call with no metadata fails', done => {
+test('call with no metadata rejected and actual operations not called', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
-    expect(authorizationFilter).toHaveBeenCalled()
     expect(doSomethingAdmin).not.toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
@@ -101,6 +98,7 @@ test('valid admin role', done => {
   client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
     expect(response).toEqual({message: 'I did something important'})
+    expect(doSomethingAdmin).toHaveBeenCalledTimes(1)
     done()
   })
 })
@@ -112,9 +110,8 @@ test('not enough privileges, bro', done => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.details).toBe('You have to be an Admin to do this...')
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
-    // expect(err.metadata).toBe('')
-    // expect(Object.keys(err)).toBe([])
     expect(response).toBeUndefined()
+    expect(doSomethingAdmin).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
     done()
   })
 })
