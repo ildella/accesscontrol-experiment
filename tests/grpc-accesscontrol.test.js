@@ -23,6 +23,9 @@ const readSomething = jest.fn().mockImplementation(
 const createSomething = jest.fn().mockImplementation(
   async call => ({message: 'I did something important'})
 )
+const updateSomething = jest.fn().mockImplementation(
+  async call => ({message: 'something has been updated'})
+)
 const restriction = ({operation, resource}) => promisify((call, cb) => {
   const roles = call.metadata.get('roles')
   const permission = ac.can(roles).execute(operation).sync().on(resource)
@@ -39,12 +42,14 @@ const restriction = ({operation, resource}) => promisify((call, cb) => {
 })
 const createSomethingRestriction = restriction({operation: 'create', resource: 'something'})
 const mockAuthorization = jest.fn().mockImplementation(createSomethingRestriction)
+const updateSomethingRpc = callbackify(composeAsync(restriction({operation: 'update', resource: 'something'}), updateSomething))
 
 const rpcs = {
   echo: callbackify(echo),
   verifyAdmin: mockAuthorization,
   readSomething: callbackify(composeAsync(readSomething)),
   createSomething: callbackify(composeAsync(mockAuthorization, createSomething)),
+  updateSomething: updateSomethingRpc,
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -91,7 +96,7 @@ test('call with no metadata rejected and actual operations not called', done => 
   })
 })
 
-test('not enough privileges, bro', done => {
+test('not enough privileges to create, bro', done => {
   const meta = new grpc.Metadata()
   meta.add('roles', 'user')
   client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
@@ -100,6 +105,18 @@ test('not enough privileges, bro', done => {
     expect(err.message).toBe('7 PERMISSION_DENIED: Role user is not authorized to perform create against something')
     expect(response).toBeUndefined()
     expect(createSomething).not.toHaveBeenCalled()
+    done()
+  })
+})
+
+test('not enough privileges to update, bro', done => {
+  const meta = new grpc.Metadata()
+  meta.add('roles', 'user')
+  client.updateSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+    expect(err.code).toBe(grpc.status.PERMISSION_DENIED)
+    expect(err.details).toBe('Role user is not authorized to perform update against something')
+    expect(response).toBeUndefined()
+    expect(updateSomething).not.toHaveBeenCalled()
     done()
   })
 })
