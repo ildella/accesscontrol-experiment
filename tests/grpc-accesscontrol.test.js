@@ -42,14 +42,15 @@ const restriction = ({operation, resource}) => promisify((call, cb) => {
 })
 const createSomethingRestriction = restriction({operation: 'create', resource: 'something'})
 const mockAuthorization = jest.fn().mockImplementation(createSomethingRestriction)
-const updateSomethingRpc = callbackify(composeAsync(restriction({operation: 'update', resource: 'something'}), updateSomething))
+const applyPolicy = (procedure, operation, resource) => callbackify(composeAsync(restriction({operation: operation, resource: resource}), procedure))
+const updateSomethingRpcWithPolicy = applyPolicy(updateSomething, 'update', 'something')
 
 const rpcs = {
   echo: callbackify(echo),
   verifyAdmin: mockAuthorization,
   readSomething: callbackify(composeAsync(readSomething)),
   createSomething: callbackify(composeAsync(mockAuthorization, createSomething)),
-  updateSomething: updateSomethingRpc,
+  updateSomething: updateSomethingRpcWithPolicy,
 }
 const grpcServiceConfig = {
   port: 50102,
