@@ -23,7 +23,7 @@ const readSomething = jest.fn().mockImplementation(
 const createSomething = jest.fn().mockImplementation(
   async call => ({message: 'I did something important'})
 )
-const restriction = ({operation, resource}) => (call, cb) => {
+const restriction = ({operation, resource}) => promisify((call, cb) => {
   const roles = call.metadata.get('roles')
   const permission = ac.can(roles).execute(operation).sync().on(resource)
   if (permission.granted === true) {
@@ -36,10 +36,9 @@ const restriction = ({operation, resource}) => (call, cb) => {
     details: `Role ${roles} is not authorized to perform ${operation} against ${resource}`,
     metadata: meta,
   })
-}
+})
 const createSomethingRestriction = restriction({operation: 'create', resource: 'something'})
-const authorizationPromise = promisify(createSomethingRestriction)
-const mockAuthorization = jest.fn().mockImplementation(authorizationPromise)
+const mockAuthorization = jest.fn().mockImplementation(createSomethingRestriction)
 
 const rpcs = {
   echo: callbackify(echo),
@@ -92,17 +91,6 @@ test('call with no metadata rejected and actual operations not called', done => 
   })
 })
 
-test('valid admin role', done => {
-  const meta = new grpc.Metadata()
-  meta.add('roles', 'admin')
-  client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
-    expect(err).toBeNull()
-    expect(response).toEqual({message: 'I did something important'})
-    expect(createSomething).toHaveBeenCalledTimes(1)
-    done()
-  })
-})
-
 test('not enough privileges, bro', done => {
   const meta = new grpc.Metadata()
   meta.add('roles', 'user')
@@ -111,7 +99,19 @@ test('not enough privileges, bro', done => {
     expect(err.details).toBe('Role user is not authorized to perform create against something')
     expect(err.message).toBe('7 PERMISSION_DENIED: Role user is not authorized to perform create against something')
     expect(response).toBeUndefined()
-    expect(createSomething).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
+    expect(createSomething).not.toHaveBeenCalled()
+    done()
+  })
+})
+
+// TODO: move success test in a separate file
+test('valid admin role', done => {
+  const meta = new grpc.Metadata()
+  meta.add('roles', 'admin')
+  client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+    expect(err).toBeNull()
+    expect(response).toEqual({message: 'I did something important'})
+    expect(createSomething).toHaveBeenCalledTimes(1)
     done()
   })
 })
