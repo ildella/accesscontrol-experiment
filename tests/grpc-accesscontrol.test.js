@@ -81,7 +81,7 @@ const grpcServiceConfig = {
   protoPath: `${__dirname}/something.proto`,
   service: 'SomethingService',
 }
-const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig, rpcs)
+const {server, protoDescriptor} = simpleGrpcServer(grpcServiceConfig)
 server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
 server.start()
 const client = simpleGrpcClient(grpcServiceConfig)
