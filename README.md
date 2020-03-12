@@ -7,11 +7,17 @@ yarn
 yarn test
 ```
 
+## Access Control at a Glance
+
+Governs the ability of subjects to perform operations on objects
+
 ## Nomenclature
 
+* subject: that requests the operation (user, group, organization...)
 * role: admin, user, editor...
-* resource: the domain entitiy / business object (products, orders, invoices, contacts...)
-* action: a verb of an action to be performed (view, create, update...)
+* resource/object: the domain entity like products, orders, invoices, contacts...
+* action/operation: typiccally a verb like view/read, create, update...
+
 * feature: resource + action eg: create invoice
 * grant: role attribute/condition over a feature, 
 
