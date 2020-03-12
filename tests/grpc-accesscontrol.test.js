@@ -17,15 +17,15 @@ const ac = new AccessControl(grantList)
 const echo = jest.fn().mockImplementation(
   async call => ({event: 'echo-reply', version: '0.1', message: call.request.message})
 )
-const doSomething = jest.fn().mockImplementation(
+const readSomething = jest.fn().mockImplementation(
   async call => ({message: 'I did something'})
 )
-const doSomethingAdmin = jest.fn().mockImplementation(
+const createSomething = jest.fn().mockImplementation(
   async call => ({message: 'I did something important'})
 )
-const authzFilter = (call, cb) => {
+const restriction = ({operation, resource}) => (call, cb) => {
   const roles = call.metadata.get('roles')
-  const permission = ac.can(roles).execute('create').sync().on('something')
+  const permission = ac.can(roles).execute(operation).sync().on(resource)
   console.log(`${roles}: granted: ${permission.granted}`)
   if (permission.granted === true) {
     return cb(null, call)
@@ -38,14 +38,15 @@ const authzFilter = (call, cb) => {
     metadata: meta,
   })
 }
-const authorizationFilterPromise = promisify(authzFilter)
-const authorizationFilterPromiseMock = jest.fn().mockImplementation(authorizationFilterPromise)
+const createSomethingRestriction = restriction({operation: 'create', resource: 'something'})
+const authorizationPromise = promisify(createSomethingRestriction)
+const mockAuthorization = jest.fn().mockImplementation(authorizationPromise)
 
 const rpcs = {
   echo: callbackify(echo),
-  doSomething: callbackify(composeAsync(doSomething)),
-  verifyAdmin: authorizationFilterPromiseMock,
-  doSomethingAdmin: callbackify(composeAsync(authorizationFilterPromiseMock, doSomethingAdmin)),
+  verifyAdmin: mockAuthorization,
+  readSomething: callbackify(composeAsync(readSomething)),
+  createSomething: callbackify(composeAsync(mockAuthorization, createSomething)),
 }
 const grpcServiceConfig = {
   port: 50102,
@@ -63,11 +64,11 @@ afterAll(async done => {
   server.tryShutdown(() => done())
 })
 
-test('doSomething is ok without any authorization metadata', done => {
-  client.doSomething({message: 'hi'}, (err, response) => {
+test('readSomething is ok without any authorization metadata', done => {
+  client.readSomething({message: 'hi'}, (err, response) => {
     expect(err).toBe(null)
     expect(response).toEqual({message: 'I did something'})
-    expect(doSomething).toHaveBeenCalled()
+    expect(readSomething).toHaveBeenCalled()
     done()
   })
 })
@@ -83,8 +84,8 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
 })
 
 test('call with no metadata rejected and actual operations not called', done => {
-  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
-    expect(doSomethingAdmin).not.toHaveBeenCalled()
+  client.createSomething({message: 'I am Leonhard Euler'}, (err, response) => {
+    expect(createSomething).not.toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
     expect(response).toBeUndefined()
@@ -95,10 +96,10 @@ test('call with no metadata rejected and actual operations not called', done => 
 test('valid admin role', done => {
   const meta = new grpc.Metadata()
   meta.add('roles', 'admin')
-  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+  client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err).toBeNull()
     expect(response).toEqual({message: 'I did something important'})
-    expect(doSomethingAdmin).toHaveBeenCalledTimes(1)
+    expect(createSomething).toHaveBeenCalledTimes(1)
     done()
   })
 })
@@ -106,12 +107,12 @@ test('valid admin role', done => {
 test('not enough privileges, bro', done => {
   const meta = new grpc.Metadata()
   meta.add('roles', 'user')
-  client.doSomethingAdmin({message: 'I am Leonhard Euler'}, meta, (err, response) => {
+  client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
     expect(err.details).toBe('You have to be an Admin to do this...')
     expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
     expect(response).toBeUndefined()
-    expect(doSomethingAdmin).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
+    expect(createSomething).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
     done()
   })
 })
