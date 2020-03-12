@@ -18,17 +18,17 @@
     "eslint": "5.16.0",
     "eslint-config-node-opinionated": "0.2.6",
     "jest": "25.1.0",
-    "mongodb-memory-server-core": "6.3.2"
+    "mongodb-memory-server-core": "6.3.3"
   },
   "dependencies": {
     "@grpc/proto-loader": "0.5.3",
-    "csv-parse": "4.8.5",
+    "csv-parse": "4.8.8",
     "google-auth-library": "5.10.1",
     "grpc": "1.24.2",
     "highland": "2.13.5",
-    "mongodb": "3.5.4",
+    "mongodb": "3.5.5",
     "ramda": "0.27.0",
-    "role-acl": "4.3.3",
+    "role-acl": "4.4.0",
     "rxjs": "6.5.4"
   }
 }
