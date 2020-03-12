@@ -26,15 +26,13 @@ const createSomething = jest.fn().mockImplementation(
 const restriction = ({operation, resource}) => (call, cb) => {
   const roles = call.metadata.get('roles')
   const permission = ac.can(roles).execute(operation).sync().on(resource)
-  // console.log(`${roles}: granted: ${permission.granted}`)
   if (permission.granted === true) {
     return cb(null, call)
   }
-  console.log(permission.granted)
   const meta = new grpc.Metadata()
   meta.add('custom-authz-message', 'need-admin')
   return cb({
-    code: grpc.status.UNAUTHENTICATED,
+    code: grpc.status.PERMISSION_DENIED,
     details: `Role ${roles} is not authorized to perform ${operation} against ${resource}`,
     metadata: meta,
   })
@@ -74,11 +72,11 @@ test('readSomething is ok without any authorization metadata', done => {
   })
 })
 
-test('get UNAUTHENTICATED error without proper metadata', done => {
+test('permission denied without proper metadata', done => {
   client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(err).not.toBeNull()
-    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
-    expect(err.message).toBe('16 UNAUTHENTICATED: Role  is not authorized to perform create against something')
+    expect(err.code).toBe(grpc.status.PERMISSION_DENIED)
+    expect(err.message).toBe('7 PERMISSION_DENIED: Role  is not authorized to perform create against something')
     expect(response).toBeUndefined()
     done()
   })
@@ -87,8 +85,8 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
 test('call with no metadata rejected and actual operations not called', done => {
   client.createSomething({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(createSomething).not.toHaveBeenCalled()
-    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
-    expect(err.message).toBe('16 UNAUTHENTICATED: Role  is not authorized to perform create against something')
+    expect(err.code).toBe(grpc.status.PERMISSION_DENIED)
+    expect(err.message).toBe('7 PERMISSION_DENIED: Role  is not authorized to perform create against something')
     expect(response).toBeUndefined()
     done()
   })
@@ -109,9 +107,9 @@ test('not enough privileges, bro', done => {
   const meta = new grpc.Metadata()
   meta.add('roles', 'user')
   client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
-    expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
+    expect(err.code).toBe(grpc.status.PERMISSION_DENIED)
     expect(err.details).toBe('Role user is not authorized to perform create against something')
-    expect(err.message).toBe('16 UNAUTHENTICATED: Role user is not authorized to perform create against something')
+    expect(err.message).toBe('7 PERMISSION_DENIED: Role user is not authorized to perform create against something')
     expect(response).toBeUndefined()
     expect(createSomething).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
     done()
