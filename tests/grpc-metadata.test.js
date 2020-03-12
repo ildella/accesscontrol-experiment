@@ -24,7 +24,8 @@ server.addService(protoDescriptor.proto['SomethingService'].service, rpcs)
 server.start()
 const client = simpleGrpcClient(grpcServiceConfig)
 
-afterAll(done => {
+afterAll(async done => {
+  await grpc.getClientChannel(client).close()
   server.tryShutdown(() => done())
 })
 
