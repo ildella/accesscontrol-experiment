@@ -9,6 +9,7 @@ test('compose functions', () => {
 
   expect(expression(2)).toEqual(7) // 2 * 2 + 3 = 7
   expect(reverse(2)).toEqual(10) // 2 + 3 * 2 = 10
+  expect(multiplyBy2(sum3(2))).toEqual(10) // and this is why people like composeRight :)
 })
 
 const {composeAsync} = require('../src/promise-composition')

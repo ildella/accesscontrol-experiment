@@ -3,6 +3,7 @@ const AccessControl = require('role-acl')
 const grpc = require('grpc')
 
 const {composeAsync} = require('../src/promise-composition')
+const {composeRight} = require('../src/function-composition')
 const simpleGrpcClient = require('./simple-grpc-client')
 const simpleGrpcServer = require('./simple-grpc-server')
 
@@ -42,15 +43,38 @@ const restriction = ({operation, resource}) => promisify((call, cb) => {
 })
 const createSomethingRestriction = restriction({operation: 'create', resource: 'something'})
 const mockAuthorization = jest.fn().mockImplementation(createSomethingRestriction)
-const applyPolicy = (procedure, operation, resource) => callbackify(composeAsync(restriction({operation: operation, resource: resource}), procedure))
-const updateSomethingRpcWithPolicy = applyPolicy(updateSomething, 'update', 'something')
+
+/*
+  Ok, here we go with the explain of this complication.
+
+  Because of Node.js implementation of gRPC, the final function associated to the RPC must be a callback
+  and cannot be a promise. Hence the callbackify.
+  Also, there seem to be no way to add a middleware or an interceptor on the gRPC server instance.
+  So I hacked a solution based on promise composition.
+
+  So that's another way to write this:
+  --> callbackify(composeAsync(restriction({operation, resource}), procedure))
+
+  There are many different and better way to express this in a functional way, patches are welcome :)
+  Also if and when gRPC server instance will have Interceptors, that would be the preferred way, though gRPC only.
+
+  This is only here to find one way to have cascade validation in gRPC/Node.js server RPCs written in a
+  semi-declarative fashion.
+
+*/
+const composeAsyncAndCallbackify = composeRight(callbackify, composeAsync)
+const applyPolicy = (procedure, operation, resource) =>
+  composeAsyncAndCallbackify(
+    restriction({operation, resource}),
+    procedure,
+  )
 
 const rpcs = {
   echo: callbackify(echo),
   verifyAdmin: mockAuthorization,
   readSomething: callbackify(composeAsync(readSomething)),
   createSomething: callbackify(composeAsync(mockAuthorization, createSomething)),
-  updateSomething: updateSomethingRpcWithPolicy,
+  updateSomething: applyPolicy(updateSomething, 'update', 'something'),
 }
 const grpcServiceConfig = {
   port: 50102,
