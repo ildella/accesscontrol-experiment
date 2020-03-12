@@ -26,15 +26,16 @@ const createSomething = jest.fn().mockImplementation(
 const restriction = ({operation, resource}) => (call, cb) => {
   const roles = call.metadata.get('roles')
   const permission = ac.can(roles).execute(operation).sync().on(resource)
-  console.log(`${roles}: granted: ${permission.granted}`)
+  // console.log(`${roles}: granted: ${permission.granted}`)
   if (permission.granted === true) {
     return cb(null, call)
   }
+  console.log(permission.granted)
   const meta = new grpc.Metadata()
   meta.add('custom-authz-message', 'need-admin')
   return cb({
     code: grpc.status.UNAUTHENTICATED,
-    details: 'You have to be an Admin to do this...',
+    details: `Role ${roles} is not authorized to perform ${operation} against ${resource}`,
     metadata: meta,
   })
 }
@@ -77,7 +78,7 @@ test('get UNAUTHENTICATED error without proper metadata', done => {
   client.verifyAdmin({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(err).not.toBeNull()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
-    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(err.message).toBe('16 UNAUTHENTICATED: Role  is not authorized to perform create against something')
     expect(response).toBeUndefined()
     done()
   })
@@ -87,7 +88,7 @@ test('call with no metadata rejected and actual operations not called', done => 
   client.createSomething({message: 'I am Leonhard Euler'}, (err, response) => {
     expect(createSomething).not.toHaveBeenCalled()
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
-    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(err.message).toBe('16 UNAUTHENTICATED: Role  is not authorized to perform create against something')
     expect(response).toBeUndefined()
     done()
   })
@@ -109,8 +110,8 @@ test('not enough privileges, bro', done => {
   meta.add('roles', 'user')
   client.createSomething({message: 'I am Leonhard Euler'}, meta, (err, response) => {
     expect(err.code).toBe(grpc.status.UNAUTHENTICATED)
-    expect(err.details).toBe('You have to be an Admin to do this...')
-    expect(err.message).toBe('16 UNAUTHENTICATED: You have to be an Admin to do this...')
+    expect(err.details).toBe('Role user is not authorized to perform create against something')
+    expect(err.message).toBe('16 UNAUTHENTICATED: Role user is not authorized to perform create against something')
     expect(response).toBeUndefined()
     expect(createSomething).toHaveBeenCalledTimes(1) // FIX: move the failures test in a separate file
     done()
