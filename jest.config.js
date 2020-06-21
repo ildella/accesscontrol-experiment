@@ -8,7 +8,7 @@ module.exports = {
     '/node_modules',
     'eventstore*',
   ],
-  setupFilesAfterEnv: ['./jest-helpers.js'],
+  setupFilesAfterEnv: ['./tests/after.js'],
   collectCoverage: false,
   collectCoverageFrom: [
     '**/src/**/*.{js,jsx}',

@@ -1,4 +1,4 @@
-jest.setTimeout(500)
+jest.setTimeout(700)
 expect.extend({
   toHaveStatus (response, expectedStatus) {
     return {
