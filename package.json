@@ -14,7 +14,7 @@
     "test": "jest --maxWorkers 4"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "0.7.0",
+    "@grpc/grpc-js": "1.1.1",
     "eslint": "5.16.0",
     "eslint-config-node-opinionated": "0.2.6",
     "jest": "25.1.0",
@@ -27,8 +27,6 @@
     "grpc": "1.24.2",
     "highland": "2.13.5",
     "mongodb": "3.5.5",
-    "ramda": "0.27.0",
-    "role-acl": "4.4.0",
-    "rxjs": "6.5.4"
+    "role-acl": "4.5.4"
   }
 }
