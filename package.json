@@ -6,8 +6,15 @@
   "author": "Daniele Dellafiore",
   "license": "MIT",
   "private": true,
+  "keywords": [
+    "experiment",
+    "accesscontrol",
+    "acl",
+    "grpc",
+    "nodejs"
+  ],
   "engines": {
-    "node": ">=10.3"
+    "node": ">=12"
   },
   "scripts": {
     "lint": "eslint .",
@@ -26,7 +33,7 @@
   "dependencies": {
     "@grpc/grpc-js": "1.1.1",
     "@grpc/proto-loader": "0.5.4",
-    "csv-parse": "4.8.8",
+    "csv-parse": "4.10.1",
     "google-auth-library": "5.10.1",
     "grpc": "1.24.3",
     "highland": "2.13.5",
