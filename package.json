@@ -14,13 +14,17 @@
     "test": "jest --maxWorkers 4"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "1.1.1",
-    "eslint": "5.16.0",
-    "eslint-config-node-opinionated": "0.2.6",
+    "eslint": "7.3.0",
+    "eslint-config-node-opinionated": "0.4.0",
+    "eslint-plugin-jest": "23.16.0",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-security": "1.4.0",
+    "eslint-plugin-sonarjs": "0.5.0",
     "jest": "25.1.0",
     "mongodb-memory-server-core": "6.3.3"
   },
   "dependencies": {
+    "@grpc/grpc-js": "1.1.1",
     "@grpc/proto-loader": "0.5.3",
     "csv-parse": "4.8.8",
     "google-auth-library": "5.10.1",

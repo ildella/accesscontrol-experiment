@@ -9,7 +9,7 @@ test.skip('credentials', () => {
 })
 
 test.skip('call credentials from Google', done => {
-  (new GoogleAuth()).getApplicationDefault((err, auth) => {
+  new GoogleAuth().getApplicationDefault((err, auth) => {
     const googleCallCreds = grpc.credentials.createFromGoogleCredential(auth)
     // const combinedCreds = grpc.credentials.combineChannelCredentials(ssl_creds, call_creds)
     // expect(googleCallCreds).toBe({})

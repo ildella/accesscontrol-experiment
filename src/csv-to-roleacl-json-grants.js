@@ -6,9 +6,9 @@ const csvToRolcAclJson = specification => parse(specification, {
   cast: (value, context) => {
     if (context.column === 'attributes') {
       return value.split(',')
-    } else {
-      return value
     }
+    return value
+
   }
 })
 
