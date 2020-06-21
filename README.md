@@ -1,6 +1,8 @@
 # Access Control - Experiment
 
-Sample code for Access Control implementation, based on [role-acl](https://www.npmjs.com/package/role-acl).
+Sample code for Access Control implementation, based on [role-acl](https://www.npmjs.com/package/role-acl). 
+
+I use it with some custom code on top of a gRPC simple client/server implementation using gRPC for Node.js
 
 ```shell
 yarn
